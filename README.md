@@ -13,7 +13,7 @@ Files
 Data Binding
 -------------------------------------------
 <strong>Measure</strong>
-* <Measure>
+* Your measure
 
 <strong>Dimension</strong>
-* Name
+* NAME

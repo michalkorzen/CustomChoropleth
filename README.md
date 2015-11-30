@@ -17,3 +17,17 @@ Data Binding
 
 <strong>Dimension</strong>
 * NAME
+
+"How to use it?"
+-------------------------------------------
+The comprehensive instruction will be uploaded soon on SCN.
+ 
+Acknowledgements
+-------------------------------------------
+This extension would not be available without the contribution of Mustafa Aydogdu, SAP Turkiye 
+http://scn.sap.com/community/lumira/blog/2015/04/29/open-source-geo-maps-extension
+
+Contact
+-------------------------------------------
+Michal Korzen
+@michal_korzen

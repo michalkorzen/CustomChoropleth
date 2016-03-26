@@ -21,7 +21,7 @@ define("customchoropleth-bundle", ["sap_viz_ext_customchoropleth-src/js/flow", "
     };
     var vizExtBundle = sap.bi.framework.declareBundle({
         "id" : "sap.viz.ext.customchoropleth",
-        "version" : "1.0.0",
+        "version" : "1.1.0",
         "components" : [{
             "id" : "sap.viz.ext.customchoropleth",
             "provide" : "sap.viz.impls",

@@ -61,46 +61,26 @@ define("sap_viz_ext_customchoropleth-src/js/render", ["sap_viz_ext_customchoropl
 
         require([
 			filePath+'/leaflet.js',
+			filePath+'/turf.js',
 			filePath+'/geojson.js'
-			], function ( ) {
-				// call google maps API after everything is loaded
-				createMap();
+			], function ( leaflet, turf ) {
+				createMap(turf);
         });
           
-		function createMap() { 
+		function createMap(turf) { 
 			//Define layers
-			var layerOSM = L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
-				attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+			var OpenStreetMap = L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+				maxZoom: 19,
+				attribution: 'Map data &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 			});
 				   
-			var Esri_WorldStreetMap = L.tileLayer('http://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-				attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012'
-			});
+			var map = L.map(mapArea, {layers: [OpenStreetMap]});	
 
-			var MapQuestOpen_OSM = L.tileLayer('http://otile{s}.mqcdn.com/tiles/1.0.0/map/{z}/{x}/{y}.jpeg', {
-				attribution: 'Tiles Courtesy of <a href="http://www.mapquest.com/">MapQuest</a> &mdash; Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>',
-				subdomains: '1234'
-			});
 
-			var OpenMapSurfer_Roads = L.tileLayer('http://openmapsurfer.uni-hd.de/tiles/roads/x={x}&y={y}&z={z}', {
-				minZoom: 0,
-				maxZoom: 20,
-				attribution: 'Imagery from <a href="http://giscience.uni-hd.de/">GIScience Research Group @ University of Heidelberg</a> &mdash; Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>'
-			});
-			
-			var MapBox = L.tileLayer('https://{s}.tiles.mapbox.com/v3/{id}/{z}/{x}/{y}.png', {
-				maxZoom: 18,
-				attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
-				'<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
-				'Imagery © <a href="http://mapbox.com">Mapbox</a>',
-				id: 'examples.map-i86l3621'
-			});
-				   
-			var map = L.map(mapArea, {layers: [layerOSM]});				   
 			
 			function style(feature) {
 				return {
-					fillColor: getColor(feature.properties.NAME),
+					fillColor: getColor(feature.properties[shapeName]),
 					weight: 2,
 					opacity: 1,
 					color: 'white',
@@ -108,30 +88,62 @@ define("sap_viz_ext_customchoropleth-src/js/render", ["sap_viz_ext_customchoropl
 					fillOpacity: 0.7
 				};
 			}
+/*			
 			function setGeoStyle(layer){
 				layer.setStyle(
 				{
-					fillColor: getColor(layer.feature.properties.NAME),
+					fillColor: getColor(layer.feature.properties[shapeName]),
 					weight: 1.5,
 					opacity: 1,
 					color: 'white',
 					fillOpacity: 0.7
 				});
 			}		
+*/			
+			//prepare geojson
+			
+			var val, _mapdata = [], mapdata2;
+			if(mapdata.features.length != fdata.length) {
+				for(val of fdata) {
+					var _feature_1 = turf.filter(mapdata, shapeName, val[shapeName])
+					if(_feature_1.features.length > 0) {
+						var _feature_2 = turf.merge(_feature_1);
+						
+						
+						//if(_feature_2.geometry.coordinates.length == 1) { // cast polygon to multipolygon
+						if(_feature_2.geometry.type == "Polygon") { // cast polygon to multipolygon
+							_feature_2.geometry.type = "MultiPolygon";
+							var coords = [];
+							coords[0] = _feature_2.geometry.coordinates;
+							_feature_2.geometry.coordinates = coords;
+						}
+						_mapdata.push(_feature_2);
+
+						//_mapdata.push(_feature_1.features.length == 1 ? _feature_1 : turf.merge(_feature_1));
+					}
+				}
+				mapdata2 = turf.featurecollection(_mapdata);
+			} else {
+				mapdata2 = mapdata;
+			}
+			
+			if (fdata.length == 0 || mapdata2.features.length == 0) {
+				return;
+			}
+			
+			
 			
 			//region
-			var geoLayers = new L.geoJson(mapdata[dset1[0]], {
+			var geoLayers = new L.geoJson(mapdata2, { //dset1[0]
 				style: style,
 				onEachFeature: function (feature, layer) {
-					setPopup(layer);//layer.bindPopup(feature.properties.description);
+					setPopup(layer); //layer.bindPopup(feature.properties.description);
 				},
 				filter: function(feature, layer) {
 					var measureValue = null, indexer = 0;
 					
-					for(i=0; i<fdata.length;i++)
-					{
-						if(fdata[i][shapeName] == feature.properties.NAME)
-						{
+					for(i=0; i<fdata.length;i++) {
+						if(fdata[i][shapeName] == feature.properties[shapeName]) {
 							measureValue = fdata[i][ms1];
 							indexer = i;
 							break;
@@ -146,10 +158,8 @@ define("sap_viz_ext_customchoropleth-src/js/render", ["sap_viz_ext_customchoropl
 				var measureValue = null;
 				var indexer = 0;
 				
-				for(i=0; i<fdata.length;i++)
-				{
-					if(fdata[i][shapeName] == layer.feature.properties.NAME)
-					{
+				for(i=0; i<fdata.length;i++) {
+					if(fdata[i][shapeName] == layer.feature.properties[shapeName]) {
 						measureValue = fdata[i][ms1];
 						indexer = i;
 						break;
@@ -168,7 +178,7 @@ define("sap_viz_ext_customchoropleth-src/js/render", ["sap_viz_ext_customchoropl
 				}					
 					
 				layer.bindPopup(
-					'<table class="v-tooltip-dimension-measure" style="border-collapse: collapse;"><tr><td style="font-family:Arial;font-size:12px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;padding-bottom:8px;color:#666666" class="v-body-dimension-label">Region:</td><td style="font-family:Arial;font-size:13px;font-weight:bold;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;padding-left:7px;padding-bottom:8px;color:#666666" class="v-body-dimension-value">'+layer.feature.properties.NAME+'</td></tr><tr><td style="font-family:Arial;font-size:12px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;padding-bottom:0px;color:#666666" class="v-body-measure-label">'+ms1+':</td><td style="font-family:Arial;font-size:13px;font-weight:bold;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;padding-left:7px;padding-bottom:0px;color:#000000" class="v-body-measure-value">'+measureValue+'</td></tr></table>', 
+					'<table class="v-tooltip-dimension-measure" style="border-collapse: collapse;"><tr><td style="font-family:Arial;font-size:12px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;padding-bottom:8px;color:#666666" class="v-body-dimension-label">Region:</td><td style="font-family:Arial;font-size:13px;font-weight:bold;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;padding-left:7px;padding-bottom:8px;color:#666666" class="v-body-dimension-value">'+layer.feature.properties[shapeName]+'</td></tr><tr><td style="font-family:Arial;font-size:12px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;padding-bottom:0px;color:#666666" class="v-body-measure-label">'+ms1+':</td><td style="font-family:Arial;font-size:13px;font-weight:bold;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;padding-left:7px;padding-bottom:0px;color:#000000" class="v-body-measure-value">'+measureValue+'</td></tr></table>', 
 					{
 						closeButton: false, 
 						offset: new L.Point(0, -2), 
@@ -234,7 +244,7 @@ define("sap_viz_ext_customchoropleth-src/js/render", ["sap_viz_ext_customchoropl
 						// set ctx to the selectedObjects
 						module.setSelectedObjects([ctx]);
 						
-						var d = [layer.feature.properties.NAME, fdata[indexer][ms1]];
+						var d = [layer.feature.properties[shapeName], fdata[indexer][ms1]];
 						
 						module.dispatch().showDataFilter({
 							dataCtx: util.composeSelection(ms1, d, this, ctx)
@@ -272,39 +282,32 @@ define("sap_viz_ext_customchoropleth-src/js/render", ["sap_viz_ext_customchoropl
 			var legend = L.control({position: 'bottomright'});
 
 			legend.onAdd = function (map) {
-			
 				var diff = max2 - min2;
-
 				var div = L.DomUtil.create('div', 'info legend'),
 					grades = [min2, Math.round(min2+0.2*diff), Math.round(min2+0.4*diff), Math.round(min2+0.6*diff), Math.round(min2+0.8*diff), max2],
 					labels = [];
-
 				// loop through our density intervals and generate a label with a colored square for each interval
 				for (var i = 0; i < grades.length; i++) {
 					div.innerHTML +=
 						'<i style="background:' + colorScale2(grades[i] + 1) + '"></i> ' +
 						grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
 				}
-
 				return div;
 			};
 
 			legend.addTo(map);			
-					
+/*					
 			var baseMaps = {
-				"OSM": layerOSM,
-				"ESRI": Esri_WorldStreetMap,
-				"Open Maps Surfer": OpenMapSurfer_Roads,
-				"Map Quest": MapQuestOpen_OSM,
-				"MapBox" : MapBox
+				"OpenStreetMap": OpenStreetMap_Mapnik
 			};
 			
 			var overlayMaps = {
 				"Custom Layer (GeoJSON)": geoLayers
 			};	
-            
-            map.fitBounds(geoLayers.getBounds());
+                      
 			L.control.layers(baseMaps,overlayMaps).addTo(map);
+*/			
+			map.fitBounds(geoLayers.getBounds());
 		}
 	};
 

@@ -1,13 +1,13 @@
 Custom Choropleth - SAP Lumira visualization extension
 =================================================
-A custom choropleth map extension for SAP Lumira.<br>
+Custom choropleth map extension for SAP Lumira with native-like drill-down and filter functionalities.<br><br>
 ![giphy](images/giphy.gif?raw=true "giphy")<br>
 * Modified by [Michal Korzen](http://scn.sap.com/people/michal.korzen) - SAP Poland, Data Science Team
 * Original by [Mustafa Aydogdu](https://scn.sap.com/people/mustafa.aydogdu) - SAP Turkiye
 
 Files
 -----------
-* `SampleDataset.lums` - SAP Lumira demo sample project
+* `SampleDataset.lums` - SAP Lumira sample project
 * `sap.viz.ext.customchoropleth.zip` - SAP Lumira visualization extension
 
 "How to use it?"

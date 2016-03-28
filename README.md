@@ -1,6 +1,7 @@
 Custom Choropleth - SAP Lumira visualization extension
 =================================================
-A custom choropleth map extension for SAP Lumira.
+A custom choropleth map extension for SAP Lumira.<br>
+![giphy](images/giphy.gif?raw=true "giphy")<br>
 * Modified by [Michal Korzen](http://scn.sap.com/people/michal.korzen) - SAP Poland, Data Science Team
 * Original by [Mustafa Aydogdu](https://scn.sap.com/people/mustafa.aydogdu) - SAP Turkiye
 
@@ -17,5 +18,5 @@ Be aware, that properties attributes should match your dimensions' names. The sh
 
 Contact
 -------------------------------------------
-Michal Korzen
+Michal Korzen<br>
 [@michal_korzen](https://twitter.com/michal_korzen)

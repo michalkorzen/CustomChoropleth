@@ -3,6 +3,8 @@
  * =================================================
  * Modified by Michal Korzen, SAP Poland
  * Original by Mustafa Aydogdu, SAP Turkiye
+ *
+ * Made with Natural Earth.
  */
 
 

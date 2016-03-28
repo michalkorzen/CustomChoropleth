@@ -68,49 +68,22 @@ define("sap_viz_ext_customchoropleth-src/js/render", ["sap_viz_ext_customchoropl
         });
           
 		function createMap(turf) { 
+		
 			//Define layers
 			var OpenStreetMap = L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 				maxZoom: 19,
 				attribution: 'Map data &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 			});
 				   
-			var map = L.map(mapArea, {layers: [OpenStreetMap]});	
-
-
+			var map = L.map(mapArea, {layers: [OpenStreetMap]}).setView([51.505, -0.09], 3);	
 			
-			function style(feature) {
-				return {
-					fillColor: getColor(feature.properties[shapeName]),
-					weight: 2,
-					opacity: 1,
-					color: 'white',
-					dashArray: '2',
-					fillOpacity: 0.7
-				};
-			}
-/*			
-			function setGeoStyle(layer){
-				layer.setStyle(
-				{
-					fillColor: getColor(layer.feature.properties[shapeName]),
-					weight: 1.5,
-					opacity: 1,
-					color: 'white',
-					fillOpacity: 0.7
-				});
-			}		
-*/			
-			//prepare geojson
-			
-			var val, _mapdata = [], mapdata2;
+			//GeoJSON preprocessing		
+			var val, _mapdata = [], target_mapdata;
 			if(mapdata.features.length != fdata.length) {
 				for(val of fdata) {
 					var _feature_1 = turf.filter(mapdata, shapeName, val[shapeName])
-					if(_feature_1.features.length > 0) {
+					if(_feature_1.features.length > 0) { //checks whether feature with given shapeName exists
 						var _feature_2 = turf.merge(_feature_1);
-						
-						
-						//if(_feature_2.geometry.coordinates.length == 1) { // cast polygon to multipolygon
 						if(_feature_2.geometry.type == "Polygon") { // cast polygon to multipolygon
 							_feature_2.geometry.type = "MultiPolygon";
 							var coords = [];
@@ -118,30 +91,48 @@ define("sap_viz_ext_customchoropleth-src/js/render", ["sap_viz_ext_customchoropl
 							_feature_2.geometry.coordinates = coords;
 						}
 						_mapdata.push(_feature_2);
-
-						//_mapdata.push(_feature_1.features.length == 1 ? _feature_1 : turf.merge(_feature_1));
 					}
 				}
-				mapdata2 = turf.featurecollection(_mapdata);
+				target_mapdata = turf.featurecollection(_mapdata);
 			} else {
-				mapdata2 = mapdata;
+				target_mapdata = mapdata;
 			}
 			
-			if (fdata.length == 0 || mapdata2.features.length == 0) {
+			//checks whether data matches geoJSON
+			if (fdata.length == 0 || target_mapdata.features.length == 0) {
+				var info = L.control();
+
+				info.onAdd = function (map) {
+					this._div = L.DomUtil.create('div', 'info');
+					this.update();
+					return this._div;
+				};
+
+				info.update = function (props) {
+					this._div.innerHTML = '<b>Error</b><br/>There are no matching records<br/>Please check your geoJSON file';
+				};
+
+				info.addTo(map);
 				return;
 			}
 			
-			
-			
 			//region
-			var geoLayers = new L.geoJson(mapdata2, { //dset1[0]
-				style: style,
+			var geoLayers = new L.geoJson(target_mapdata, { //dset1[0]
+				style: function (feature) {
+					return {
+						fillColor: getColor(feature.properties[shapeName]),
+						weight: 2,
+						opacity: 1,
+						color: 'white',
+						dashArray: '2',
+						fillOpacity: 0.7
+					};
+				},
 				onEachFeature: function (feature, layer) {
 					setPopup(layer); //layer.bindPopup(feature.properties.description);
 				},
-				filter: function(feature, layer) {
+				filter: function(feature, layer) { //displays only matching features
 					var measureValue = null, indexer = 0;
-					
 					for(i=0; i<fdata.length;i++) {
 						if(fdata[i][shapeName] == feature.properties[shapeName]) {
 							measureValue = fdata[i][ms1];
@@ -149,7 +140,6 @@ define("sap_viz_ext_customchoropleth-src/js/render", ["sap_viz_ext_customchoropl
 							break;
 						}
 					}
-					
 					return (measureValue != null);
 				}
 			}).addTo(map);				
@@ -264,7 +254,7 @@ define("sap_viz_ext_customchoropleth-src/js/render", ["sap_viz_ext_customchoropl
 				});
 			}
 
-			//Color function for geojson shapes
+			//color function for geojson shapes
 			function getColor(location){
 				var layerColor = '#EFEDEA';//Default color for no data
 				var measureValue = '';
@@ -278,9 +268,8 @@ define("sap_viz_ext_customchoropleth-src/js/render", ["sap_viz_ext_customchoropl
 				return layerColor;
 			}
 			
-			// legend
+			//legend
 			var legend = L.control({position: 'bottomright'});
-
 			legend.onAdd = function (map) {
 				var diff = max2 - min2;
 				var div = L.DomUtil.create('div', 'info legend'),
@@ -294,19 +283,9 @@ define("sap_viz_ext_customchoropleth-src/js/render", ["sap_viz_ext_customchoropl
 				}
 				return div;
 			};
+			legend.addTo(map);	
 
-			legend.addTo(map);			
-/*					
-			var baseMaps = {
-				"OpenStreetMap": OpenStreetMap_Mapnik
-			};
-			
-			var overlayMaps = {
-				"Custom Layer (GeoJSON)": geoLayers
-			};	
-                      
-			L.control.layers(baseMaps,overlayMaps).addTo(map);
-*/			
+			//fit map
 			map.fitBounds(geoLayers.getBounds());
 		}
 	};
